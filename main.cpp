@@ -10,7 +10,7 @@
 #include "tcphdr.h"
 #include "iphdr.h"
 
-// Global variables for MAC and IP addresses
+// Global variables
 Mac myMac;
 Ip myIp;
 
@@ -46,16 +46,16 @@ int getAddresses(const char* interface, Mac* myMac, Ip* myIp) {
 
     strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
-    ret = ioctl(sockfd, SIOCGIFHWADDR, &ifr); // get MAC address
+    ret = ioctl(sockfd, SIOCGIFHWADDR, &ifr); 
     if (ret < 0) {
         printf("ioctl() FAILED\n");
         close(sockfd);
         return -1;
     }
-    memcpy(macbuf, ifr.ifr_hwaddr.sa_data, 6); // MAC address length = 6
+    memcpy(macbuf, ifr.ifr_hwaddr.sa_data, 6); 
     *myMac = Mac(macbuf);
 
-    ret = ioctl(sockfd, SIOCGIFADDR, &ifr); // get IP address
+    ret = ioctl(sockfd, SIOCGIFADDR, &ifr); 
     if (ret < 0) {
         printf("ioctl() FAILED\n");
         close(sockfd);
@@ -89,7 +89,6 @@ uint16_t calculateChecksum(uint16_t* ptr, int len) {
 }
 
 void sendFinPacket(pcap_t* handle, PIpHdr ipHeader, PTcpHdr tcpHeader, uint32_t tcpDataLen) {
-    // Backward packet (FIN) -> client
     int rawSock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     int value = 1;
     setsockopt(rawSock, IPPROTO_IP, IP_HDRINCL, (char *)&value, sizeof(value));
@@ -115,7 +114,7 @@ void sendFinPacket(pcap_t* handle, PIpHdr ipHeader, PTcpHdr tcpHeader, uint32_t 
     tcpHeaderMy->seqnum = tcpHeader->acknum;
     tcpHeaderMy->acknum = htonl(ntohl(tcpHeader->seqnum) + tcpDataLen);
     tcpHeaderMy->th_off = tcpHeaderLen / 4;
-    tcpHeaderMy->flags = 0b00010001; // ACK | FIN flag
+    tcpHeaderMy->flags = 0b00010001;
     tcpHeaderMy->win = htons(60000);
 
     ipHeaderMy->ip_len = ipHeaderLen / 4;
@@ -143,7 +142,6 @@ void sendFinPacket(pcap_t* handle, PIpHdr ipHeader, PTcpHdr tcpHeader, uint32_t 
 }
 
 void sendRstPacket(pcap_t* handle, const u_char* packetData, PIpHdr ipHeader, PTcpHdr tcpHeader, uint32_t ipHeaderLen, uint32_t tcpDataLen) {
-    // Forward packet (RST) -> server 
     uint32_t newPktLen = sizeof(EthHdr) + ipHeaderLen + sizeof(TcpHdr);
     std::vector<char> newPacket(newPktLen + 1);
     memset(newPacket.data(), 0, newPktLen + 1);
@@ -158,7 +156,7 @@ void sendRstPacket(pcap_t* handle, const u_char* packetData, PIpHdr ipHeader, PT
     ipHeader->check = 0;
     tcpHeader->th_off = sizeof(TcpHdr) / 4;
     tcpHeader->seqnum = htonl(ntohl(tcpHeader->seqnum) + tcpDataLen);
-    tcpHeader->flags = 0b00010100; // RST | ACK flag
+    tcpHeader->flags = 0b00010100;
     tcpHeader->check = 0;
 
     PseudoHeader psdHeader = {};
